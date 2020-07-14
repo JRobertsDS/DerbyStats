@@ -1,0 +1,95 @@
+A Shiny App with some Roller Derby Stats
+========================================================
+author: JRobertsDS
+date: 7/14/2020
+autosize: true
+
+Available here: 
+
+https://jrobertsds.shinyapps.io/DerbyStats/
+
+The Data
+========================================================
+
+The data for this project come from my Roller Derby officiating history, a data frame with rows of:
+
+- Date
+- The name of the Head Referee for the game
+- My position in the game
+- Whether the game was on the Banked or the Flat track
+
+Loading the data
+========================================================
+```{r, echo = FALSE}
+library (lubridate)
+library (dplyr)
+library (ggplot2)
+```
+```{r}
+bankedRawData <- read.csv ("DBRefResumeBanked.csv", stringsAsFactors = FALSE)
+flatRawData <- read.csv ("DBRefResumeFlat.csv", stringsAsFactors = FALSE)
+with (bankedRawData, bankedGameData <<- data.frame (Date = as.POSIXct(Date, format="%m/%d/%Y"), 
+            Game = "Banked", HR = HR, Position = Position, Bout = Bout, Notes = With.Whom, Add.Notes = Notes))
+with (flatRawData[-13, ], flatGameData <<- data.frame (Date = as.POSIXct(Bout.Date, format="%m/%d/%Y"), 
+            Game = "Flat", HR = HR, Position = Position, Bout = Bout, Notes = Notes, Add.Notes = paste (More.Notes, X)))
+
+gameData <- rbind (bankedGameData, flatGameData)
+HRs <- count (gameData, HR) %>% arrange (desc (n))
+Positions <- count (gameData, Position) %>% arrange (desc (n))
+
+str (gameData)
+```
+
+The Shiny UI looks like this:
+========================================================
+```{r, eval = FALSE}
+ui <- fluidPage(
+    titlePanel("Derby Stats"),
+    sidebarLayout(
+        sidebarPanel(
+            h5 ("Choose the number of bars to view:"),
+            sliderInput("topHits", "Number of Bars:",
+                        min = 4, max = max (length (HRs$n), length (Positions$n)), step = 1, value = 10),
+            h5 ("Choose the type of chart to view:"),
+            radioButtons("whichChart", "Show HRs, or Positions:", 
+                        c("HRs" = "HRs", "Positions" = "Positions"))
+        ),
+        mainPanel(
+           plotOutput("distPlot")
+        )
+    )
+)
+```
+The Shiny Server looks like this:
+========================================================
+```{r, eval = FALSE}
+server <- function(input, output) {
+    #initialize
+    topHits = 10
+    whichChart = "HRs"
+    output$distPlot <- renderPlot({
+        if (input$whichChart == "Positions") {
+           ...
+        } else {
+            topHits <- min (input$topHits, length (HRs$n))
+            graphTitle = sprintf ("Top %d ", topHits)
+            graphTitle <- paste(graphTitle, "Head Referees")
+            gameData[gameData$HR %in% HRs[1:input$topHits, ]$HR, ] %>% 
+                ggplot(.) + geom_bar(aes(x = reorder (HR, HR, function (x) - length(x)), fill = Game), position = "stack") + theme(axis.text.x = element_text(angle = 90)) + xlab ("Head Referee") + ylab ("Count") + ggtitle (graphTitle)
+        }
+    })
+}
+```
+And in the end you get a plot that looks like this:
+========================================================
+
+```{r, echo = FALSE}
+topHits <- length (HRs$n)
+graphTitle = sprintf ("Top %d ", topHits)
+            graphTitle <- paste(graphTitle, "Head Referees")
+            gameData[gameData$HR %in% HRs[1:topHits, ]$HR, ] %>% 
+                ggplot(.) + geom_bar(aes(x = reorder (HR, HR, function (x) - length(x)), fill = Game), position = "stack") + theme(axis.text.x = element_text(angle = 90)) + xlab ("Head Referee") + ylab ("Count") + ggtitle (graphTitle)
+```
+``` {r}
+            
+```
