@@ -2,14 +2,12 @@ A Shiny App with some Roller Derby Stats
 ========================================================
 author: JRobertsDS
 date: 7/14/2020
-autosize: true
+width: 1440
+height: 1200
 
-Available here: 
+The online App is here: 
 
 https://jrobertsds.shinyapps.io/DerbyStats/
-
-The Data
-========================================================
 
 The data for this project come from my Roller Derby officiating history, a data frame with rows of:
 
